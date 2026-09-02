@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">FluxTest | FPS Benchmarks & Hardware</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0a0c10;
+            --bg-gradient: linear-gradient(180deg, #0a0c10 0%, #131722 100%);
+            --accent: #00ffcc;
+            --accent-glow: rgba(0, 255, 204, 0.25);
+            --text-main: #f0f3f6;
+            --text-muted: #8b949e;
+            --card-bg: rgba(19, 23, 34, 0.85);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none !important; }
+        html { overflow-y: scroll; }
+        body {
+            background: var(--bg-gradient);
+            background-color: var(--bg-color);
+            background-attachment: fixed;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            transition: background 0.3s ease;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Özel Neon İmleç Tasarımı */
+        .cursor-dot, .cursor-outline {
+            position: fixed;
+            top: 0; left: 0;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 99999;
+            border-radius: 50%;
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+        }
+        .cursor-dot {
+            width: 8px; height: 8px;
+            background-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+        }
+        .cursor-outline {
+            width: 32px; height: 32px;
+            border: 1px solid var(--accent);
+            background-color: rgba(0, 255, 204, 0.05);
+            transition: transform 0.05s ease-out;
+        }
+
+        /* Eski TV / CRT & Vinyet Efektleri */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 998;
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+        }
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* Intro Açılış Ekranı */
+        #intro-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000000;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer !important;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+        #intro-screen.fade-out { opacity: 0; visibility: hidden; }
+        .intro-logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 4px;
+            text-shadow: 0 0 20px var(--accent-glow);
+            animation: pulseIntro 2s infinite alternate;
+            text-align: center;
+        }
+        .intro-logo span { color: var(--accent); text-shadow: 0 0 25px var(--accent); }
+        .intro-sub {
+            margin-top: 15px;
+            color: var(--text-muted);
+            font-size: 1rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        @keyframes pulseIntro {
+            0% { transform: scale(1); text-shadow: 0 0 10px rgba(0,255,204,0.2); }
+            100% { transform: scale(1.05); text-shadow: 0 0 30px rgba(0,255,204,0.6); }
+        }
+
+        #rain-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        header {
+            background: rgba(10, 12, 16, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            position: fixed;
+            top: 0; left: 0; width: 100%;
+            z-index: 2000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 3%;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo span { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
+
+        nav { display: flex; gap: 18px; align-items: center; }
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.3s;
+            cursor: pointer !important;
+            font-size: 0.95rem;
+        }
+        nav a:hover, nav a.active { color: var(--accent); text-shadow: 0 0 8px var(--accent); }
+
+        .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        
+        .preset-select, .lang-select {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer !important;
+            outline: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .color-pickers {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 3px 6px;
+            border-radius: 8px;
+        }
+        .color-pickers input[type="color"] {
+            appearance: none;
+            border: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            cursor: pointer !important;
+            background: transparent;
+        }
+
+        .custom-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 6px 10px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            cursor: pointer !important;
+            transition: 0.3s;
+        }
+        .custom-btn:hover { opacity: 0.85; transform: scale(1.02); }
+
+        /* Müzik Oynatıcı Widget Alanı */
+        .music-widget {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
+        .music-widget label {
+            cursor: pointer !important;
+            color: var(--accent);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+        }
+        .music-widget input[type="file"] { display: none; }
+        .music-widget input[type="range"] {
+            width: 60px;
+            accent-color: var(--accent);
+            cursor: pointer !important;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 9rem 5% 4rem; position: relative; z-index: 2; }
+        .section { display: none; animation: fadeIn 0.4s ease forwards; }
+        .section.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--accent);
+            padding-left: 12px;
+            letter-spacing: 1px;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .video-card, .hardware-card, .poll-wrapper, .contact-box, .discord-widget-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            backdrop-filter: blur(10px);
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+        .video-card:hover, .hardware-card:hover, .poll-wrapper:hover, .contact-box:hover, .discord-widget-box:hover {
+            border-color: var(--accent);
+            box-shadow: 0 16px 35px var(--accent-glow);
+        }
+
+        .thumb-box {
+            width: 100%;
+            height: 165px;
+            background: #151922;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            position: relative;
+            overflow: hidden;
+        }
+        .thumb-box img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+        .video-card:hover .thumb-box img { transform: scale(1.08); }
+
+        .video-info { padding: 1.2rem; }
+        .video-info h3 { font-size: 1rem; margin-bottom: 0.5rem; font-weight: 600; line-height: 1.4; }
+        .video-info span { font-size: 0.85rem; color: var(--text-muted); }
+
+        .hardware-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.2rem;
+        }
+        .hardware-card { padding: 1.5rem; }
+        .hardware-card i { font-size: 1.8rem; color: var(--accent); margin-bottom: 0.8rem; display: block; }
+        .hardware-card h4 { font-size: 1.1rem; margin-bottom: 0.3px; }
+        .hardware-card p { font-size: 0.9rem; color: var(--text-muted); }
+
+        /* Discord Kartı Stili */
+        .discord-widget-box {
+            max-width: 500px;
+            margin: 2rem auto 0;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+        .discord-avatar-container {
+            position: relative;
+            width: 70px; height: 70px;
+            flex-shrink: 0;
+        }
+        .discord-avatar-container img {
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border);
+        }
+        .status-dot {
+            position: absolute;
+            bottom: 2px; right: 2px;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            border: 2px solid #131722;
+        }
+        .status-online { background-color: #23a55a; }
+        .status-idle { background-color: #f0b232; }
+        .status-dnd { background-color: #f23f43; }
+        .status-offline { background-color: #80848e; }
+
+        .discord-details h4 { font-size: 1.1rem; font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
+        .discord-details p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.3; }
+        .discord-activity {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .poll-wrapper {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .poll-option {
+            background: rgba(0,0,0,0.25);
+            border: 1px solid var(--border);
+            padding: 14px 20px;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            cursor: pointer !important;
+            transition: all 0.25s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .poll-option:hover {
+            border-color: var(--accent);
+            background: rgba(0, 255, 204, 0.04);
+            transform: scale(1.02);
+        }
+        .poll-bar {
+            position: absolute;
+            left: 0; bottom: 0; top: 0;
+            background: var(--accent);
+            opacity: 0.12;
+            z-index: 0;
+            transition: width 0.4s ease;
+        }
+        .poll-option span, .poll-option strong { position: relative; z-index: 1; }
+
+        .contact-box {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2.5rem;
+            border-radius: 16px;
+        }
+        .form-group { margin-bottom: 1.2rem; }
+        .form-group label { display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.9rem; }
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 10px 14px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-main);
+            outline: none;
+        }
+
+        /* Canlı Ziyaretçi Sayacı Köşe Rozeti */
+        #visitor-badge {
+            position: fixed;
+            bottom: 20px; left: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 1500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        #visitor-badge i { color: var(--accent); animation: blinkBadge 1.5s infinite; }
+        @keyframes blinkBadge { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        #toast {
+            visibility: hidden;
+            min-width: 260px;
+            background-color: #131722;
+            color: var(--text-main);
+            border: 1px solid var(--accent);
+            text-align: center;
+            border-radius: 10px;
+            padding: 14px 20px;
+            position: fixed;
+            z-index: 3000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%) translateY(20px);
+            box-shadow: 0 10px 30px var(--accent-glow);
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        #toast.show { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
+        .menu-toggle { display: none; font-size: 1.5rem; cursor: pointer !important; color: var(--text-main); }
+
+        @media(max-width: 950px) {
+            nav { display: none; position: absolute; top: 100%; left: 0; width: 100%; background: #0a0c10; flex-direction: column; padding: 1.5rem; border-bottom: 1px solid var(--border); }
+            nav.open { display: flex; }
+            .menu-toggle { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Özel Neon İmleç Elementleri -->
+    <div class="cursor-dot" id="cursor-dot"></div>
+    <div class="cursor-outline" id="cursor-outline"></div>
+
+    <!-- Canlı Ziyaretçi Rozeti -->
+    <div id="visitor-badge">
+        <i class="fa-solid fa-circle"></i>
+        <span id="visitor-count-text">Anlık Ziyaretçi: Yükleniyor...</span>
+    </div>
+
+    <div id="intro-screen" onclick="enterSite()">
+        <div class="intro-logo">FLUX <span>TEST</span></div>
+        <div class="intro-sub" data-tr="Girmek için tıkla" data-en="Click to enter">Girmek için tıkla</div>
+    </div>
+
+    <canvas id="rain-canvas"></canvas>
+
+    <!-- Arkaplan Müzik Elementi -->
+    <audio id="bg-music" loop></audio>
+
+    <header>
+        <div class="logo"><i class="fa-solid fa-bolt"></i> FLUX<span>TEST</span></div>
+        <div class="menu-toggle" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></div>
+        <nav id="nav-menu">
+            <a onclick="switchTab('videos')" class="active" id="nav-vids" data-tr="Videolar" data-en="Videos">Videolar</a>
+            <a onclick="switchTab('hardware')" id="nav-hw-tab" data-tr="Sistemim" data-en="Hardware">Sistemim</a>
+            <a onclick="switchTab('channels')" id="nav-chans" data-tr="Kanallar" data-en="Channels">Kanallar</a>
+            <a onclick="switchTab('poll')" id="nav-poll" data-tr="Anket" data-en="Poll">Anket</a>
+            <a onclick="switchTab('contact-section')" id="nav-contact-tab" data-tr="İletişim" data-en="Contact">İletişim</a>
+        </nav>
+        <div class="header-actions">
+            <!-- Müzik Yükleme & Ses Kontrolü -->
+            <div class="music-widget">
+                <label title="Telefon veya Bilgisayardan Müzik Seç"><i class="fa-solid fa-music"></i> <input type="file" id="musicFile" accept="audio/*" onchange="loadMusic(this)"></label>
+                <input type="range" id="musicVolume" min="0" max="1" step="0.05" value="0.4" oninput="changeVolume(this.value)" title="Ses Seviyesi">
+            </div>
+
+            <select class="preset-select" id="presetSelector" onchange="applyPreset(this.value)">
+                <option value="default" data-tr="Şablon: Varsayılan" data-en="Theme: Default">Şablon: Varsayılan</option>
+                <option value="sunset" data-tr="Şablon: Üst Beyaz / Alt Siyah" data-en="Theme: White/Black">Şablon: Üst Beyaz / Alt Siyah</option>
+                <option value="cyber" data-tr="Şablon: Neon Mor" data-en="Theme: Neon Purple">Şablon: Neon Mor</option>
+            </select>
+            <div class="color-pickers">
+                <input type="color" id="colorTop" value="#0a0c10">
+                <input type="color" id="colorBottom" value="#131722">
+                <button class="custom-btn" onclick="applyCustomColors()" data-tr="Uygula" data-en="Apply">Uygula</button>
+            </div>
+            <select class="lang-select" id="langSelector" onchange="changeLang(this.value)">
+                <option value="tr">TR</option>
+                <option value="en">EN</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Videos Section -->
+        <div id="videos" class="section active">
+            <h2 class="section-title" data-tr="Son FPS Testleri & Videolar" data-en="Latest FPS Benchmarks & Videos">Son FPS Testleri & Videolar</h2>
+            <div class="video-grid" id="youtube-videos">
+                <div class="video-card"><div class="thumb-box"><i class="fa-solid fa-spinner fa-spin" style="font-size:2rem; color:var(--accent);"></i></div><div class="video-info"><h3 data-tr="Videolar yükleniyor..." data-en="Loading videos...">Videolar yükleniyor...</h3></div></div>
+            </div>
+        </div>
+
+        <!-- Donanım / Sistemim Section -->
+        <div id="hardware" class="section">
+            <h2 class="section-title" data-tr="Test Sistemim & Donanım" data-en="Test System & Hardware">Test Sistemim & Donanım</h2>
+            <div class="hardware-grid">
+                <div class="hardware-card tilt-box"><i class="fa-solid fa-microchip"></i><h4 data-tr="İşlemci" data-en="CPU">İşlemci</h4><p>AMD Ryzen 5 7500F</p></div>
+                <div class="hardware-card tilt-box"><i class="fa-solid fa-vr-cardboard"></i><h4 data-tr="Ekran Kartı" data-en="GPU">Ekran Kartı</h4><p>NVIDIA GeForce RTX 5060</p></div>
+                <div class="hardware-card tilt-box"><i class="fa-solid fa-server"></i><h4 data-tr="Anakart" data-en="Motherboard">Anakart</h4><p>MSI Pro A620M-B</p></div>
+                <div class="hardware-card tilt-box"><i class="fa-solid fa-desktop"></i><h4 data-tr="Monitör" data-en="Monitor">Monitör</h4><p>LG 2K Oyuncu Monitörü</p></div>
+                <div class="hardware-card tilt-box"><i class="fa-solid fa-keyboard"></i><h4 data-tr="Klavye" data-en="Keyboard">Klavye</h4><p>SteelSeries Apex 5</p></div>
+                <div class="hardware-card tilt-box"><i class="fa-solid fa-computer-mouse"></i><h4 data-tr="Mouse" data-en="Mouse">Mouse</h4><p>Attack Shark X3</p></div>
+            </div>
+        </div>
+
+        <!-- Channels Section -->
+        <div id="channels" class="section">
+            <h2 class="section-title" data-tr="Kanallarım & Linkler" data-en="My Channels & Links">Kanallarım & Linkler</h2>
+            <div class="video-grid">
+                <a href="https://www.youtube.com/channel/UCMlwfGb4x0IwAzuNlxeLcZQ" target="_blank" class="video-card tilt-box">
+                    <div class="thumb-box"><i class="fa-brands fa-youtube" style="font-size:3rem; color:red"></i></div>
+                    <div class="video-info"><h3>FluxTest</h3><span data-tr="Ana FPS Test Kanalı" data-en="Main FPS Benchmark Channel">Ana FPS Test Kanalı</span></div>
+                </a>
+                <a href="https://www.youtube.com/channel/UCM6EXLZFrqGu5Yd0gf1PCpg" target="_blank" class="video-card tilt-box">
+                    <div class="thumb-box"><i class="fa-brands fa-youtube" style="font-size:3rem; color:red"></i></div>
+                    <div class="video-info"><h3>Renxc</h3><span data-tr="Kişisel & Eğlence Kanalı" data-en="Personal & Entertainment Channel">Kişisel & Eğlence Kanalı</span></div>
+                </a>
+                <a href="https://guns.lol/nyxven" target="_blank" class="video-card tilt-box">
+                    <div class="thumb-box"><i class="fa-solid fa-link" style="font-size:2.5rem; color:var(--accent)"></i></div>
+                    <div class="video-info"><h3 data-tr="Guns.lol Profili" data-en="Guns.lol Profile">Guns.lol Profili</h3><span data-tr="Tüm Sosyal Medya Linkleri" data-en="All Social Media Links">Tüm Sosyal Medya Linkleri</span></div>
+                </a>
+            </div>
+
+            <!-- Lanyard Discord Widget Kartı -->
+            <div class="discord-widget-box tilt-box" id="discord-card">
+                <div class="discord-avatar-container">
+                    <img id="dc-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Discord Avatar">
+                    <div class="status-dot status-offline" id="dc-status-dot"></div>
+                </div>
+                <div class="discord-details">
+                    <h4 id="dc-username"><i class="fa-brands fa-discord" style="color:#5865F2;"></i> Discord Durumu</h4>
+                    <p id="dc-status-text" data-tr="Bağlantı bekleniyor..." data-en="Connecting...">Bağlantı bekleniyor...</p>
+                    <div class="discord-activity" id="dc-activity-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Poll Section -->
+        <div id="poll" class="section">
+            <h2 class="section-title" data-tr="Hangi Ekran Kartı İncelemesini İstiyorsun?" data-en="Which GPU Review Do You Want Next?">Hangi Ekran Kartı İncelemesini İstiyorsun?</h2>
+            <div class="poll-wrapper tilt-box" id="poll-options-box">
+                <p style="color:var(--text-muted)" data-tr="Anket yükleniyor..." data-en="Loading poll...">Anket yükleniyor...</p>
+            </div>
+        </div>
+
+        <!-- Contact Section -->
+        <div id="contact-section" class="section">
+            <h2 class="section-title" data-tr="İletişim" data-en="Contact">İletişim</h2>
+            <div class="contact-box tilt-box">
+                <form action="https://formspree.io/f/mlgqvper" method="POST">
+                    <div class="form-group"><label data-tr="İsminiz" data-en="Your Name">İsminiz</label><input type="text" name="name" required></div>
+                    <div class="form-group"><label data-tr="E-Posta Adresiniz" data-en="Your Email">E-Posta Adresiniz</label><input type="email" name="email" required></div>
+                    <div class="form-group"><label data-tr="Mesajınız" data-en="Your Message">Mesajınız</label><textarea name="message" rows="5" required></textarea></div>
+                    <button type="submit" class="custom-btn" style="width: 100%; padding: 12px;" data-tr="Gönder" data-en="Send">Gönder</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">Bildirim mesajı</div>
+
+    <!-- Firebase SDK & Canlı Sayaç & Anket -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, runTransaction, push, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "SENIN_API_KEY",
+            authDomain: "SENIN_AUTH_DOMAIN",
+            databaseURL: "https://fluxtest-2053b-default-rtdb.firebaseio.com",
+            projectId: "SENIN_PROJECT_ID",
+            storageBucket: "SENIN_STORAGE_BUCKET",
+            messagingSenderId: "SENIN_MESSAGING_SENDER_ID",
+            appId: "SENIN_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Canlı Ziyaretçi Sayacı Mantığı
+        const visitorsRef = ref(db, 'stats/online_users');
+        const myVisitorRef = push(visitorsRef);
+        onDisconnect(myVisitorRef).remove();
+
+        const countRef = ref(db, 'stats/online_users');
+        onValue(countRef, (snapshot) => {
+            const val = snapshot.val();
+            const count = val ? Object.keys(val).length : 1;
+            let lang = document.getElementById('langSelector').value;
+            let txt = lang === 'en' ? `Active Visitors: ${count}` : `Anlık Ziyaretçi: ${count}`;
+            document.getElementById('visitor-count-text').innerText = txt;
+        });
+
+        // Anket Verileri
+        const pollRef = ref(db, 'polls');
+        onValue(pollRef, (snapshot) => {
+            const data = snapshot.val();
+            const box = document.getElementById('poll-options-box');
+            if (!data) return;
+
+            let totalVotes = 0;
+            Object.values(data).forEach(item => totalVotes += item.votes);
+            if (totalVotes === 0) totalVotes = 1;
+
+            box.innerHTML = "";
+            let currentLang = document.getElementById('langSelector').value;
+            let voteText = currentLang === 'en' ? 'votes' : 'oy';
+
+            Object.keys(data).forEach(key => {
+                let item = data[key];
+                let percent = Math.round((item.votes / totalVotes) * 100);
+                box.innerHTML += `
+                    <div class="poll-option" onclick="votePoll('${key}', ${item.votes})">
+                        <div class="poll-bar" style="width: ${percent}%;"></div>
+                        <span>${item.option_text}</span>
+                        <strong>${item.votes} ${voteText} (%${percent})</strong>
+                    </div>`;
+            });
+        });
+
+        window.votePoll = function(key, currentVotes) {
+            let votedKey = `voted_poll_${key}`;
+            if(localStorage.getItem(votedKey)) {
+                let msg = document.getElementById('langSelector').value === 'en' ? "You already voted on this poll!" : "Zaten bu ankete oy verdin knk!";
+                showToast(msg);
+                return;
+            }
+
+            const itemRef = ref(db, `polls/${key}/votes`);
+            runTransaction(itemRef, (votes) => {
+                return (votes || 0) + 1;
+            }).then(() => {
+                localStorage.setItem(votedKey, "true");
+                let msg = document.getElementById('langSelector').value === 'en' ? "Vote recorded successful!" : "Oyin başarıyla kaydedildi!";
+                showToast(msg);
+            }).catch(() => {
+                showToast("Hata oluştu.");
+            });
+        }
+    </script>
+
+    <script>
+        // Özel Neon İmleç Takip Kodu
+        const cursorDot = document.getElementById('cursor-dot');
+        const cursorOutline = document.getElementById('cursor-outline');
+
+        window.addEventListener('mousemove', (e) => {
+            const posX = e.clientX;
+            const posY = e.clientY;
+
+            cursorDot.style.left = `${posX}px`;
+            cursorDot.style.top = `${posY}px`;
+
+            cursorOutline.style.transform = `translate(${posX - 16}px, ${posY - 16}px)`;
+        });
+
+        window.addEventListener('mousedown', () => {
+            cursorOutline.style.transform += ' scale(0.85)';
+        });
+        window.addEventListener('mouseup', () => {
+            cursorOutline.style.transform = cursorOutline.style.transform.replace(' scale(0.85)', '');
+        });
+
+        // Lanyard Discord Widget Entegrasyonu
+        async function fetchDiscordStatus() {
+            const discordID = "1498561652205813790";
+            try {
+                let res = await fetch(`https://api.lanyard.rest/v1/users/${discordID}`);
+                let data = await res.json();
+                if(data.success) {
+                    let d = data.data;
+                    let user = d.discord_user;
+                    
+                    // Avatar Ayarla
+                    let avatarUrl = user.avatar 
+                        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`
+                        : `https://cdn.discordapp.com/embed/avatars/0.png`;
+                    document.getElementById('dc-avatar').src = avatarUrl;
+                    document.getElementById('dc-username').innerHTML = `<i class="fa-brands fa-discord" style="color:#5865F2;"></i> ${user.username}`;
+
+                    // Durum Rengi Ayarla
+                    let dot = document.getElementById('dc-status-dot');
+                    dot.className = `status-dot status-${d.discord_status}`;
+
+                    // Durum Metni
+                    let statusTrMap = { online: "Çevrim İçi", idle: "Boşta", dnd: "Rahatsız Etmeyin", offline: "Çevrim Dışı" };
+                    let statusText = statusTrMap[d.discord_status] || "Çevrim Dışı";
+                    document.getElementById('dc-status-text').innerText = statusText;
+
+                    // Aktiflik / Spotify
+                    let activityBox = document.getElementById('dc-activity-text');
+                    if(d.spotify) {
+                        activityBox.innerHTML = `<i class="fa-brands fa-spotify" style="color:#1DB954;"></i> Dinliyor: ${d.spotify.song} - ${d.spotify.artist}`;
+                    } else if(d.activities && d.activities.length > 0) {
+                        let act = d.activities[0];
+                        activityBox.innerHTML = `<i class="fa-solid fa-gamepad"></i> Oynuyor: ${act.name}`;
+                    } else {
+                        activityBox.innerHTML = "";
+                    }
+                }
+            } catch(e) {
+                document.getElementById('dc-status-text').innerText = "Discord durumu alınamadı.";
+            }
+        }
+        fetchDiscordStatus();
+        setInterval(fetchDiscordStatus, 15000); // Her 15 saniyede bir güncelle
+
+        function enterSite() {
+            document.getElementById('intro-screen').classList.add('fade-out');
+            let bgMusic = document.getElementById('bg-music');
+            if(bgMusic.src && bgMusic.src !== window.location.href) {
+                bgMusic.play().catch(e => console.log(e));
+            }
+        }
+
+        // Müzik Yükleme ve Oynatma
+        function loadMusic(input) {
+            if (input.files && input.files[0]) {
+                let file = input.files[0];
+                let musicUrl = URL.createObjectURL(file);
+                let bgMusic = document.getElementById('bg-music');
+                bgMusic.src = musicUrl;
+                bgMusic.volume = document.getElementById('musicVolume').value;
+                bgMusic.play().then(() => {
+                    showToast(document.getElementById('langSelector').value === 'en' ? "Music loaded & playing!" : "Müzik yüklendi ve çalıyor! 🎵");
+                }).catch(err => {
+                    showToast("Müzik oynatılamadı.");
+                });
+            }
+        }
+
+        function changeVolume(val) {
+            let bgMusic = document.getElementById('bg-music');
+            bgMusic.volume = val;
+        }
+
+        // Gelişmiş 3D Tilt Efekti
+        function initTiltEffects() {
+            document.querySelectorAll('.tilt-box').forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    card.style.transform = `perspective(1000px) rotateX(${-y / 8}deg) rotateY(${x / 8}deg) scale3d(1.03, 1.03, 1.03)`;
+                });
+
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+                    card.style.transition = 'transform 0.5s ease';
+                });
+
+                card.addEventListener('mouseenter', () => {
+                    card.style.transition = 'none';
+                });
+            });
+        }
+        initTiltEffects();
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+            document.getElementById('nav-menu').classList.remove('open');
+        }
+
+        function toggleMenu() { document.getElementById('nav-menu').classList.toggle('open'); }
+
+        function showToast(message) {
+            let toast = document.getElementById("toast");
+            toast.innerText = message;
+            toast.className = "show";
+            setTimeout(() => { toast.className = ""; }, 3000);
+        }
+
+        function applyPreset(preset) {
+            let topColor = "#0a0c10", botColor = "#131722";
+            if(preset === 'sunset') { topColor = "#ffffff"; botColor = "#0a0c10"; }
+            else if(preset === 'cyber') { topColor = "#2b093f"; botColor = "#050508"; }
+            document.getElementById('colorTop').value = topColor;
+            document.getElementById('colorBottom').value = botColor;
+            document.documentElement.style.setProperty('--bg-gradient', `linear-gradient(180deg, ${topColor} 0%, ${botColor} 100%)`);
+            document.documentElement.style.setProperty('--bg-color', botColor);
+        }
+
+        function applyCustomColors() {
+            let topColor = document.getElementById('colorTop').value;
+            let bottomColor = document.getElementById('colorBottom').value;
+            document.documentElement.style.setProperty('--bg-gradient', `linear-gradient(180deg, ${topColor} 0%, ${bottomColor} 100%)`);
+            document.documentElement.style.setProperty('--bg-color', bottomColor);
+        }
+
+        // Parıltılı Süzülen Parçacıklar
+        const canvas = document.getElementById('rain-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        for(let i = 0; i < 90; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2.5 + 0.8,
+                speedY: Math.random() * 2 + 0.5,
+                speedX: (Math.random() - 0.5) * 1,
+                opacity: Math.random() * 0.5 + 0.2
+            });
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                ctx.fillStyle = `rgba(0, 255, 204, ${p.opacity})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                p.y += p.speedY;
+                p.x += p.speedX;
+
+                if(p.y > canvas.height) { p.y = 0; p.x = Math.random() * canvas.width; }
+                if(p.x > canvas.width || p.x < 0) { p.x = Math.random() * canvas.width; }
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        async function fetchYouTubeVideos() {
+            const grid = document.getElementById('youtube-videos');
+            const channelID = "UCMlwfGb4x0IwAzuNlxeLcZQ";
+            const rssUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelID}`)}`;
+            try {
+                let response = await fetch(rssUrl);
+                let data = await response.json();
+                let parser = new DOMParser();
+                let xmlDoc = parser.parseFromString(data.contents, "text/xml");
+                let entries = xmlDoc.getElementsByTagName("entry");
+                if(entries && entries.length > 0) {
+                    grid.innerHTML = "";
+                    for(let i = 0; i < Math.min(entries.length, 6); i++) {
+                        let title = entries[i].getElementsByTagName("title")[0].textContent;
+                        let videoId = entries[i].getElementsByTagName("yt:videoId")[0].textContent;
+                        let thumbUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                        grid.innerHTML += `
+                            <a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" class="video-card tilt-box">
+                                <div class="thumb-box"><img src="${thumbUrl}" alt="${title}"></div>
+                                <div class="video-info"><h3>${title}</h3><span>FluxTest • YouTube</span></div>
+                            </a>`;
+                    }
+                    initTiltEffects();
+                }
+            } catch(e) { grid.innerHTML = `<p style="color:var(--text-muted)">Videolar yüklenemedi.</p>`; }
+        }
+        fetchYouTubeVideos();
+
+        function changeLang(lang) {
+            document.querySelectorAll('[data-tr]').forEach(el => {
+                if (lang === 'en') {
+                    el.innerText = el.getAttribute('data-en');
+                } else {
+                    el.innerText = el.getAttribute('data-tr');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
