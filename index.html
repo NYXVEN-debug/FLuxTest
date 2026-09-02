@@ -477,7 +477,7 @@
                 <div class="hardware-card tilt-box"><i class="fa-solid fa-microchip"></i><h4 data-tr="İşlemci" data-en="CPU">İşlemci</h4><p>AMD Ryzen 5 7500F</p></div>
                 <div class="hardware-card tilt-box"><i class="fa-solid fa-vr-cardboard"></i><h4 data-tr="Ekran Kartı" data-en="GPU">Ekran Kartı</h4><p>NVIDIA GeForce RTX 5060</p></div>
                 <div class="hardware-card tilt-box"><i class="fa-solid fa-server"></i><h4 data-tr="Anakart" data-en="Motherboard">Anakart</h4><p>MSI Pro A620M-B</p></div>
-                <div class="hardware-card tilt-box"><i class="fa-solid fa-desktop"></i><h4 data-tr="Monitör" data-en="Monitor">Monitör</h4><p>LG 2K Oyuncu Monitörü</p></div>
+                <div class="hardware-card tilt-box"><i class="fa-solid fa-desktop"></i><h4 data-tr="Monitör" data-en="Monitor">Monitör</h4><p>LG Oyuncu Monitörü</p></div>
                 <div class="hardware-card tilt-box"><i class="fa-solid fa-keyboard"></i><h4 data-tr="Klavye" data-en="Keyboard">Klavye</h4><p>SteelSeries Apex 5</p></div>
                 <div class="hardware-card tilt-box"><i class="fa-solid fa-computer-mouse"></i><h4 data-tr="Mouse" data-en="Mouse">Mouse</h4><p>Attack Shark X3</p></div>
             </div>
@@ -619,7 +619,7 @@
             }).then(() => {
                 localStorage.setItem('voted_option_key', newKey);
                 localStorage.setItem('user_ip_auth', userIP); // IP güvenliği işareti
-                let msg = document.getElementById('langSelector').value === 'en' ? "Vote updated successfully!" : "Oyin güncellendi knk!";
+                let msg = document.getElementById('langSelector').value === 'en' ? "Vote updated successfully!" : "Oyun güncellendi knk!";
                 showToast(msg);
             }).catch(() => {
                 showToast("Oy verme sırasında hata oluştu.");
