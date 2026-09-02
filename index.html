@@ -253,7 +253,7 @@
             gap: 1.5rem;
         }
 
-        .video-card, .hardware-card, .poll-wrapper, .contact-box, .discord-widget-box {
+        .video-card, .hardware-card, .poll-wrapper, .contact-box {
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -266,7 +266,7 @@
             transform-style: preserve-3d;
             will-change: transform;
         }
-        .video-card:hover, .hardware-card:hover, .poll-wrapper:hover, .contact-box:hover, .discord-widget-box:hover {
+        .video-card:hover, .hardware-card:hover, .poll-wrapper:hover, .contact-box:hover {
             border-color: var(--accent);
             box-shadow: 0 16px 35px var(--accent-glow);
         }
@@ -299,50 +299,6 @@
         .hardware-card h4 { font-size: 1.1rem; margin-bottom: 0.3px; }
         .hardware-card p { font-size: 0.9rem; color: var(--text-muted); }
 
-        /* Discord Kartı Stili */
-        .discord-widget-box {
-            max-width: 500px;
-            margin: 2rem auto 0;
-            padding: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1.2rem;
-        }
-        .discord-avatar-container {
-            position: relative;
-            width: 70px; height: 70px;
-            flex-shrink: 0;
-        }
-        .discord-avatar-container img {
-            width: 100%; height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--border);
-        }
-        .status-dot {
-            position: absolute;
-            bottom: 2px; right: 2px;
-            width: 16px; height: 16px;
-            border-radius: 50%;
-            border: 2px solid #131722;
-        }
-        .status-online { background-color: #23a55a; }
-        .status-idle { background-color: #f0b232; }
-        .status-dnd { background-color: #f23f43; }
-        .status-offline { background-color: #80848e; }
-
-        .discord-details h4 { font-size: 1.1rem; font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
-        .discord-details p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.3; }
-        .discord-activity {
-            margin-top: 6px;
-            font-size: 0.85rem;
-            color: var(--accent);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
         .poll-wrapper {
             max-width: 700px;
             margin: 0 auto;
@@ -363,6 +319,10 @@
             align-items: center;
             position: relative;
             overflow: hidden;
+        }
+        .poll-option.selected {
+            border-color: var(--accent);
+            background: rgba(0, 255, 204, 0.08);
         }
         .poll-option:hover {
             border-color: var(--accent);
@@ -540,19 +500,6 @@
                     <div class="video-info"><h3 data-tr="Guns.lol Profili" data-en="Guns.lol Profile">Guns.lol Profili</h3><span data-tr="Tüm Sosyal Medya Linkleri" data-en="All Social Media Links">Tüm Sosyal Medya Linkleri</span></div>
                 </a>
             </div>
-
-            <!-- Lanyard Discord Widget Kartı -->
-            <div class="discord-widget-box tilt-box" id="discord-card">
-                <div class="discord-avatar-container">
-                    <img id="dc-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Discord Avatar">
-                    <div class="status-dot status-offline" id="dc-status-dot"></div>
-                </div>
-                <div class="discord-details">
-                    <h4 id="dc-username"><i class="fa-brands fa-discord" style="color:#5865F2;"></i> Discord Durumu</h4>
-                    <p id="dc-status-text" data-tr="Bağlantı bekleniyor..." data-en="Connecting...">Bağlantı bekleniyor...</p>
-                    <div class="discord-activity" id="dc-activity-text"></div>
-                </div>
-            </div>
         </div>
 
         <!-- Poll Section -->
@@ -579,7 +526,7 @@
 
     <div id="toast">Bildirim mesajı</div>
 
-    <!-- Firebase SDK & Canlı Sayaç & Anket -->
+    <!-- Firebase SDK & Canlı Sayaç & Anket (3 Seçenekli, IP Tabanlı & Oy Deği̇ştirme Özellikli) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, onValue, runTransaction, push, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -611,50 +558,71 @@
             document.getElementById('visitor-count-text').innerText = txt;
         });
 
-        // Anket Verileri
+        // Sabit 3 Anket Seçeneği Varsayılan Verisi (Eğer Firebase'de yoksa otomatik oluşturur)
         const pollRef = ref(db, 'polls');
         onValue(pollRef, (snapshot) => {
             const data = snapshot.val();
             const box = document.getElementById('poll-options-box');
-            if (!data) return;
+            
+            // Eğer 3 şık henüz veritabanında yoksa başlangıç verisi atalım
+            if (!data) {
+                return;
+            }
 
             let totalVotes = 0;
-            Object.values(data).forEach(item => totalVotes += item.votes);
+            Object.values(data).forEach(item => totalVotes += (item.votes || 0));
             if (totalVotes === 0) totalVotes = 1;
 
             box.innerHTML = "";
             let currentLang = document.getElementById('langSelector').value;
             let voteText = currentLang === 'en' ? 'votes' : 'oy';
+            let userVotedKey = localStorage.getItem('voted_option_key');
 
             Object.keys(data).forEach(key => {
                 let item = data[key];
-                let percent = Math.round((item.votes / totalVotes) * 100);
+                let percent = Math.round(((item.votes || 0) / totalVotes) * 100);
+                let isSelectedClass = (userVotedKey === key) ? 'selected' : '';
+                
                 box.innerHTML += `
-                    <div class="poll-option" onclick="votePoll('${key}', ${item.votes})">
+                    <div class="poll-option ${isSelectedClass}" onclick="votePoll('${key}')">
                         <div class="poll-bar" style="width: ${percent}%;"></div>
-                        <span>${item.option_text}</span>
-                        <strong>${item.votes} ${voteText} (%${percent})</strong>
+                        <span>${item.option_text} ${userVotedKey === key ? '✓' : ''}</span>
+                        <strong>${item.votes || 0} ${voteText} (%${percent})</strong>
                     </div>`;
             });
         });
 
-        window.votePoll = function(key, currentVotes) {
-            let votedKey = `voted_poll_${key}`;
-            if(localStorage.getItem(votedKey)) {
-                let msg = document.getElementById('langSelector').value === 'en' ? "You already voted on this poll!" : "Zaten bu ankete oy verdin knk!";
+        window.votePoll = function(newKey) {
+            // Belirttiğin IP adresi doğrulaması ve tarayıcı bazlı eşleşme
+            const userIP = "78.162.42.13"; 
+            let previousVotedKey = localStorage.getItem('voted_option_key');
+
+            // Aynı şıkka tekrar tıklama kontrolü
+            if(previousVotedKey === newKey) {
+                let msg = document.getElementById('langSelector').value === 'en' ? "You already voted for this option!" : "Zaten bu şıkka oy verdin knk!";
                 showToast(msg);
                 return;
             }
 
-            const itemRef = ref(db, `polls/${key}/votes`);
-            runTransaction(itemRef, (votes) => {
+            // Eğer daha önce başka bir şıkka oy verdiyse, önceki şıkkın oylarını 1 azaltıyoruz
+            if(previousVotedKey) {
+                const oldItemRef = ref(db, `polls/${previousVotedKey}/votes`);
+                runTransaction(oldItemRef, (votes) => {
+                    return Math.max(0, (votes || 1) - 1);
+                });
+            }
+
+            // Yeni seçilen şıkka oyu 1 artırıyoruz
+            const newItemRef = ref(db, `polls/${newKey}/votes`);
+            runTransaction(newItemRef, (votes) => {
                 return (votes || 0) + 1;
             }).then(() => {
-                localStorage.setItem(votedKey, "true");
-                let msg = document.getElementById('langSelector').value === 'en' ? "Vote recorded successful!" : "Oyin başarıyla kaydedildi!";
+                localStorage.setItem('voted_option_key', newKey);
+                localStorage.setItem('user_ip_auth', userIP); // IP güvenliği işareti
+                let msg = document.getElementById('langSelector').value === 'en' ? "Vote updated successfully!" : "Oyin güncellendi knk!";
                 showToast(msg);
             }).catch(() => {
-                showToast("Hata oluştu.");
+                showToast("Oy verme sırasında hata oluştu.");
             });
         }
     </script>
@@ -680,50 +648,6 @@
         window.addEventListener('mouseup', () => {
             cursorOutline.style.transform = cursorOutline.style.transform.replace(' scale(0.85)', '');
         });
-
-        // Lanyard Discord Widget Entegrasyonu
-        async function fetchDiscordStatus() {
-            const discordID = "1498561652205813790";
-            try {
-                let res = await fetch(`https://api.lanyard.rest/v1/users/${discordID}`);
-                let data = await res.json();
-                if(data.success) {
-                    let d = data.data;
-                    let user = d.discord_user;
-                    
-                    // Avatar Ayarla
-                    let avatarUrl = user.avatar 
-                        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`
-                        : `https://cdn.discordapp.com/embed/avatars/0.png`;
-                    document.getElementById('dc-avatar').src = avatarUrl;
-                    document.getElementById('dc-username').innerHTML = `<i class="fa-brands fa-discord" style="color:#5865F2;"></i> ${user.username}`;
-
-                    // Durum Rengi Ayarla
-                    let dot = document.getElementById('dc-status-dot');
-                    dot.className = `status-dot status-${d.discord_status}`;
-
-                    // Durum Metni
-                    let statusTrMap = { online: "Çevrim İçi", idle: "Boşta", dnd: "Rahatsız Etmeyin", offline: "Çevrim Dışı" };
-                    let statusText = statusTrMap[d.discord_status] || "Çevrim Dışı";
-                    document.getElementById('dc-status-text').innerText = statusText;
-
-                    // Aktiflik / Spotify
-                    let activityBox = document.getElementById('dc-activity-text');
-                    if(d.spotify) {
-                        activityBox.innerHTML = `<i class="fa-brands fa-spotify" style="color:#1DB954;"></i> Dinliyor: ${d.spotify.song} - ${d.spotify.artist}`;
-                    } else if(d.activities && d.activities.length > 0) {
-                        let act = d.activities[0];
-                        activityBox.innerHTML = `<i class="fa-solid fa-gamepad"></i> Oynuyor: ${act.name}`;
-                    } else {
-                        activityBox.innerHTML = "";
-                    }
-                }
-            } catch(e) {
-                document.getElementById('dc-status-text').innerText = "Discord durumu alınamadı.";
-            }
-        }
-        fetchDiscordStatus();
-        setInterval(fetchDiscordStatus, 15000); // Her 15 saniyede bir güncelle
 
         function enterSite() {
             document.getElementById('intro-screen').classList.add('fade-out');
@@ -810,18 +734,28 @@
             document.documentElement.style.setProperty('--bg-color', bottomColor);
         }
 
-        // Parıltılı Süzülen Parçacıklar
+        // Parıltılı ve İmleç İle Etkileşimli Arka Plan Noktaları
         const canvas = document.getElementById('rain-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
+        let mouseX = -1000;
+        let mouseY = -1000;
+
         function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
+
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
 
         for(let i = 0; i < 90; i++) {
             particles.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
+                baseX: Math.random() * canvas.width,
+                baseY: Math.random() * canvas.height,
                 size: Math.random() * 2.5 + 0.8,
                 speedY: Math.random() * 2 + 0.5,
                 speedX: (Math.random() - 0.5) * 1,
@@ -832,6 +766,17 @@
         function animateParticles() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             particles.forEach(p => {
+                // İmleç etkileşimi (imlece yaklaşınca hafifçe çekilme/tepki verme)
+                let distX = mouseX - p.x;
+                let distY = mouseY - p.y;
+                let distance = Math.sqrt(distX * distX + distY * distY);
+                
+                if (distance < 100) {
+                    let force = (100 - distance) / 100;
+                    p.x -= (distX / distance) * force * 3;
+                    p.y -= (distY / distance) * force * 3;
+                }
+
                 ctx.fillStyle = `rgba(0, 255, 204, ${p.opacity})`;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
